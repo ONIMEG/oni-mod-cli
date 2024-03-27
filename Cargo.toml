@@ -20,7 +20,8 @@ thiserror = "1.0"
 anyhow = "1.0"
 md5 = "0.7.0"
 clap = { version = "4.5.4" , features = ["derive"]}
-dialoguer="0.11.0"
+dialoguer = "0.11.0"
+chrono = "0.4.35"
 
 
 [dependencies.uuid]

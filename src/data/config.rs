@@ -82,12 +82,3 @@ pub fn refresh_version() -> Result<u32> {
     }
     Ok(latest_version)
 }
-
-pub fn info_store_current_project(project_info:String) -> Result<()>{
-    fs::write(Path::new("./curr_proj.buf"), project_info)?;
-    Ok(())
-}
-
-pub fn read_current_project_buffer() -> Result<String>{
-    Ok(fs::read_to_string(Path::new("./curr_proj.buf"))?)
-}

@@ -8,6 +8,7 @@ mod tests {
     fn create_solution() {
         let _ = fs::remove_dir_all("target/Test");
         let sln = SolutionInfo::new("hello", PathBuf::new().join("target/Test"));
+        println!("{:?}", sln);
         assert_eq!(sln.create().is_ok(), true);
     }
     #[test]
