@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use xml::reader::{EventReader, XmlEvent};
 use crate::project::solution::SolutionInfo;
+use crate::utils::get_resource_path;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CSProject {
@@ -71,8 +72,10 @@ fn create_file(csproj: &CSProject, target_path: &PathBuf) -> Result<()>{
     let mut new_csproj_xml = serde_xml_rs::to_string(&csproj)?;
     new_csproj_xml = format_xml(new_csproj_xml)?;
     new_csproj_xml = new_csproj_xml.replace(
-        "<Project>",
-        "<Project Sdk=\"Microsoft.NET.Sdk\">");
+        "<CSProject>",
+        "<Project Sdk=\"Microsoft.NET.Sdk\">").replace(
+        "</CSProject>",
+        "</Project>");
     fs::write(target_path, new_csproj_xml)?;
     Ok(())
 }
@@ -115,7 +118,8 @@ fn format_xml(xml_string: String) -> Result<String> {
 }
 /// 创建 Mod.cs
 fn add_mod_cs(target_path: PathBuf, new_info: &CSProject) -> Result<()>{
-    let mut file_obj = File::open(".\\resource\\Mod.cs").expect("找不到 Mod.cs");
+    let resource_path = get_resource_path()?;
+    let mut file_obj = File::open(resource_path.join("Mod.cs")).expect("找不到 Mod.cs");
     let mut code = String::new();
     file_obj.read_to_string(&mut code).expect("读取 Mod.cs 失败");
     code = code.replace("{assembly_title}", &new_info.property_group.root_namespace);
@@ -124,7 +128,6 @@ fn add_mod_cs(target_path: PathBuf, new_info: &CSProject) -> Result<()>{
 }
 // 在 solution 添加 project 字段
 fn add_csproj_to_sln(target_sln: &PathBuf, csproj_name: &String) -> Result<()> {
-    print!("{:?}", target_sln);
     let project_item = PROJECT_ITEM
         .replace("$[a]", CS_GUID)
         .replace("$[b]", csproj_name)

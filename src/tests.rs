@@ -1,7 +1,7 @@
+#[cfg(test)]
 mod tests {
     use std::fs;
     use std::path::PathBuf;
-    use crate::data::config::AppConfigInfo;
     use crate::project::csproj::CSProject;
     use crate::project::solution::SolutionInfo;
     #[test]
@@ -18,10 +18,5 @@ mod tests {
         let result = csproj.create(&sln);
         println!("{:?}",&result);
         assert_eq!(result.is_ok(), true);
-    }
-    #[test]
-    fn config(){
-        let mut config = AppConfigInfo::new();
-        println!("{:?}",config.refresh_game_version())
     }
 }

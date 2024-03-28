@@ -1,4 +1,3 @@
-use std::env::current_exe;
 use std::fs;
 use std::fs::{create_dir_all, File, read_to_string};
 use std::io::{BufReader, BufWriter};
@@ -7,6 +6,7 @@ use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use zip::ZipArchive;
+use crate::utils::get_resource_path;
 
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -32,18 +32,8 @@ impl SolutionInfo {
         }
         // 创建存放项目的文件夹
         create_dir_all(&self.dir)?;
+        let resource_path = get_resource_path()?;
         // 将压缩包解压
-        let mut resource_path = PathBuf::new();
-        if cfg!(debug_assertions) {
-            resource_path = resource_path.join("C:\\Users\\26216\\code\\rust\\oni-mod-cli\\resource");
-        } else {
-            let exe_path = current_exe()?;
-            let parent = exe_path.parent();
-            if parent.is_none(){
-                return Err(anyhow!("解析程序路径失败"));
-            }
-            resource_path = resource_path.join(parent.unwrap()).join("resource");
-        }
         let file = File::open(&resource_path.join("build.zip"))?;
         let mut archive = ZipArchive::new(BufReader::new(file))?;
         for i in 0..archive.len() {
