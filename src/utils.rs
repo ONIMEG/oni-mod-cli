@@ -1,7 +1,16 @@
+use std::collections::hash_map::DefaultHasher;
 use std::env::current_exe;
+use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::process::exit;
 use scraper::Selector;
 use anyhow::{anyhow, Result};
+use log::error;
+
+const BUILD_HASH_PLIB:u64 = 4748454135723726910;
+const MOD_HASH_PLIB:u64 = 2910857530418022517;
+const MOD_HASH:u64 = 10249465668325030135;
 
 pub fn get_latest_version() -> Result<u32> {
     let url = "https://forums.kleientertainment.com/game-updates/oni-alpha/";
@@ -21,7 +30,7 @@ pub fn get_latest_version() -> Result<u32> {
     }
 }
 
-pub fn get_resource_path() -> Result<PathBuf>{
+pub fn get_resource_path(is_plib:bool) -> Result<PathBuf>{
     let mut resource_path = PathBuf::new();
     if cfg!(debug_assertions) {
         resource_path = resource_path
@@ -34,5 +43,31 @@ pub fn get_resource_path() -> Result<PathBuf>{
         }
         resource_path = resource_path.join(parent.unwrap()).join("resource");
     }
+    if is_plib {
+        resource_path = resource_path.join("plib");
+    }
     Ok(resource_path)
+}
+
+pub fn compare_hash()->Result<()>{
+    let hash_list:[u64; 3] = [BUILD_HASH_PLIB, MOD_HASH_PLIB, MOD_HASH];
+    let file_list:[&str; 3] = ["plib/build.zip","plib/Mod.cs","Mod.cs"];
+    let root_path = get_resource_path(false)?;
+    for i in 0..3 {
+        println!("[{}/{}]检查文件完整性", i+1, hash_list.len());
+        let file_path = root_path.join(file_list[i]);
+        let data = fs::read(&file_path)?;
+        let curr_hash = calculate_hash(&data);
+        if curr_hash != hash_list[i] {
+            error!("程序文件可能被破坏，请重新安装本程序");
+            exit(1);
+        }
+    }
+    Ok(())
+}
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }

@@ -32,7 +32,7 @@ impl SolutionInfo {
         }
         // 创建存放项目的文件夹
         create_dir_all(&self.dir)?;
-        let resource_path = get_resource_path()?;
+        let resource_path = get_resource_path(false)?;
         // 将压缩包解压
         let file = File::open(&resource_path.join("build.zip"))?;
         let mut archive = ZipArchive::new(BufReader::new(file))?;

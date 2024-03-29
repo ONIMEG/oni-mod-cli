@@ -8,6 +8,7 @@ use crate::cli_dialogue::{
 };
 use std::io::Write;
 use env_logger::fmt::style;
+use crate::utils::compare_hash;
 
 mod project;
 mod tests;
@@ -79,6 +80,7 @@ fn init_logger(){
 }
 fn main() {
     init_logger();
+    // compare_hash().expect("检查文件失败！");
      let cli = Cli::parse();
      match &cli.command {
          Commands::Create {create_commands}=> {

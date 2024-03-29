@@ -118,7 +118,7 @@ fn format_xml(xml_string: String) -> Result<String> {
 }
 /// 创建 Mod.cs
 fn add_mod_cs(target_path: PathBuf, new_info: &CSProject) -> Result<()>{
-    let resource_path = get_resource_path()?;
+    let resource_path = get_resource_path(false)?;
     let mut file_obj = File::open(resource_path.join("Mod.cs")).expect("找不到 Mod.cs");
     let mut code = String::new();
     file_obj.read_to_string(&mut code).expect("读取 Mod.cs 失败");

@@ -2,11 +2,12 @@ use std::env;
 use std::path::PathBuf;
 use dialoguer::{Confirm, Input};
 use log::{error, info, warn};
+use regex::Regex;
 use spinners::{Spinner, Spinners};
 use crate::project::csproj::CSProject;
 use crate::project::solution::SolutionInfo;
 use crate::utils::get_latest_version;
-
+use anyhow::Result;
 
 pub fn create_sln_with_name(name: String){
     let curr_dir = env::current_dir();
@@ -87,18 +88,12 @@ pub fn create_csproj_with_name(name: String){
     }
     let curr_dir = curr_dir.unwrap().to_path_buf();
     let target_sln_name = target_sln_name.unwrap();
-    let root_namespace = Input::new()
-        .with_prompt("输入根命名空间(决定 csproj 项目文件名称)")
-        .default(String::from("MyNewMod")).show_default(true).interact();
-    if root_namespace.is_err(){
-        error!("获取跟命名空间失败：{:?}", root_namespace.err());
-        return;
+    let root_namespace = get_root_namespace(&curr_dir, target_sln_name);
+    if root_namespace.is_err() {
+        error!("处理根命名空间失败！")
     }
     let root_namespace = root_namespace.unwrap();
-    if curr_dir.join(target_sln_name).join(&root_namespace).exists() {
-        warn!("存在同名项目！");
-        return ;
-    }
+
     let desc = Input::new()
         .with_prompt("输入模组介绍")
         .default(String::from("缺氧模组")).show_default(true).interact();
@@ -115,7 +110,7 @@ pub fn create_csproj_with_name(name: String){
         return;
     }
     let latest_version = latest_version.unwrap();
-    info!("\n当前获取到的版本号(可能不是最新版本号)：{}", latest_version);
+    println!("当前获取到的版本号(可能不是最新版本号)：{}", latest_version);
 
     let sln = SolutionInfo::new(target_sln_name, curr_dir.clone());
     let mut csproj = CSProject::new(name.as_str(), root_namespace.as_str());
@@ -139,4 +134,28 @@ pub fn create_csproj_without_name(){
     create_csproj_with_name(name_input.unwrap());
 }
 
+fn is_alpha_space(name: &str) -> bool {
+    let re = Regex::new(r"^[a-zA-Z]+$").unwrap();
+    re.is_match(name)
+}
+
+fn get_root_namespace(curr_dir: &PathBuf, target_sln_name: &str)-> Result<String>{
+    let root_namespace_input = Input::new()
+        .with_prompt("输入根命名空间(决定 csproj 项目文件名称)")
+        .default(String::from("MyNewMod")).show_default(true);
+    loop {
+        let root_namespace_b = root_namespace_input.clone().interact()?;
+
+        if curr_dir.join(target_sln_name).join(&root_namespace_b).exists() {
+            warn!("存在同名项目！");
+            continue;
+        }
+        if is_alpha_space(root_namespace_b.as_str()) {
+            return Ok(root_namespace_b);
+        } else {
+            warn!("命名空间只能包含字母和数字！");
+            continue;
+        }
+    }
+}
 

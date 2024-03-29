@@ -1,9 +1,12 @@
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::hash::{Hash};
     use std::path::PathBuf;
     use crate::project::csproj::CSProject;
     use crate::project::solution::SolutionInfo;
+    use crate::utils::{compare_hash};
+
     #[test]
     fn create_solution() {
         let _ = fs::remove_dir_all("target/Test");
@@ -19,4 +22,10 @@ mod tests {
         println!("{:?}",&result);
         assert_eq!(result.is_ok(), true);
     }
+    #[test]
+    fn test_hash(){
+        let re = compare_hash();
+        println!("{:?}", re);
+    }
+
 }
