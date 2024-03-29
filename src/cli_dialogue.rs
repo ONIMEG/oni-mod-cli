@@ -10,6 +10,12 @@ use crate::utils::get_latest_version;
 use anyhow::Result;
 
 pub fn create_sln_with_name(name: String){
+    let choose_plib = Confirm::new().with_prompt("是否使用 PLib？")
+        .default(true).show_default(true).interact();
+    if choose_plib.is_err() {
+        error!("解析选项失败：{:?}", choose_plib.as_ref().err())
+    }
+    let choose_plib = choose_plib.unwrap();
     let curr_dir = env::current_dir();
     if curr_dir.is_err() {
         error!("无法解析当前目录：{:?}", curr_dir.err());
@@ -29,7 +35,7 @@ pub fn create_sln_with_name(name: String){
         info!("取消创建解决方案");
         return;
     }
-    let create_sln_result = sln.create();
+    let create_sln_result = sln.create(choose_plib);
     if create_sln_result.is_err() {
         error!("创建解决方案失败：{:?}", create_sln_result.err());
         return;
@@ -81,6 +87,12 @@ pub fn create_csproj_with_name(name: String){
         error!("未获取到解决方案名称");
         return;
     }
+    let choose_plib = Confirm::new().with_prompt("是否使用 PLib？")
+        .default(true).show_default(true).interact();
+    if choose_plib.is_err() {
+        error!("解析选项失败：{:?}", choose_plib.as_ref().err())
+    }
+    let choose_plib = choose_plib.unwrap();
     let curr_dir = curr_dir.parent();
     if curr_dir.is_none() {
         error!("获取父目录失败");
@@ -111,12 +123,11 @@ pub fn create_csproj_with_name(name: String){
     }
     let latest_version = latest_version.unwrap();
     println!("当前获取到的版本号(可能不是最新版本号)：{}", latest_version);
-
     let sln = SolutionInfo::new(target_sln_name, curr_dir.clone());
     let mut csproj = CSProject::new(name.as_str(), root_namespace.as_str());
     csproj.property_group.last_working_build = latest_version;
     csproj.property_group.description = desc.to_string();
-    let csproj_create = csproj.create(&sln);
+    let csproj_create = csproj.create(&sln, choose_plib);
     if csproj_create.is_err() {
         error!("创建项目失败：{:?}", csproj_create.err());
         return;

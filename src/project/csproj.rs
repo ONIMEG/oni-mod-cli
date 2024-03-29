@@ -56,13 +56,13 @@ impl CSProject{
         }
     }
     /// 创建本地 csproj
-    pub fn create(&self, sln: &SolutionInfo) -> Result<()>{
+    pub fn create(&self, sln: &SolutionInfo, choose_plib: bool) -> Result<()>{
         let proj_name = &self.property_group.root_namespace;
         let target_dir = &sln.dir.join(proj_name);
         fs::create_dir_all(target_dir)?;
         let target_path = &target_dir.join(format!("{}.csproj",proj_name));
         create_file(&self, target_path)?;
-        add_mod_cs(target_dir.join("Mod.cs"), &self)?;
+        add_mod_cs(target_dir.join("Mod.cs"), &self, choose_plib)?;
         add_csproj_to_sln(&sln.path, &self.property_group.root_namespace)?;
         Ok(())
     }
@@ -117,8 +117,8 @@ fn format_xml(xml_string: String) -> Result<String> {
     Ok(formatted_xml)
 }
 /// 创建 Mod.cs
-fn add_mod_cs(target_path: PathBuf, new_info: &CSProject) -> Result<()>{
-    let resource_path = get_resource_path(false)?;
+fn add_mod_cs(target_path: PathBuf, new_info: &CSProject, choose_plib: bool) -> Result<()>{
+    let resource_path = get_resource_path(choose_plib)?;
     let mut file_obj = File::open(resource_path.join("Mod.cs")).expect("找不到 Mod.cs");
     let mut code = String::new();
     file_obj.read_to_string(&mut code).expect("读取 Mod.cs 失败");

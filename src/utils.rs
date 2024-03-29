@@ -30,7 +30,7 @@ pub fn get_latest_version() -> Result<u32> {
     }
 }
 
-pub fn get_resource_path(is_plib:bool) -> Result<PathBuf>{
+pub fn get_resource_path(choose_plib:bool) -> Result<PathBuf>{
     let mut resource_path = PathBuf::new();
     if cfg!(debug_assertions) {
         resource_path = resource_path
@@ -43,7 +43,7 @@ pub fn get_resource_path(is_plib:bool) -> Result<PathBuf>{
         }
         resource_path = resource_path.join(parent.unwrap()).join("resource");
     }
-    if is_plib {
+    if choose_plib {
         resource_path = resource_path.join("plib");
     }
     Ok(resource_path)

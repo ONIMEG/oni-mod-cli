@@ -26,13 +26,13 @@ impl SolutionInfo {
         }
     }
     /// 在本地进行解决方案的创建
-    pub fn create(&self) -> Result<&str>{
+    pub fn create(&self, choose_plib: bool) -> Result<&str>{
         if self.dir.exists() {
             return Err(anyhow!("检测到解决方案同名文件夹，请删除或者重新选择位置。"));
         }
         // 创建存放项目的文件夹
         create_dir_all(&self.dir)?;
-        let resource_path = get_resource_path(false)?;
+        let resource_path = get_resource_path(choose_plib)?;
         // 将压缩包解压
         let file = File::open(&resource_path.join("build.zip"))?;
         let mut archive = ZipArchive::new(BufReader::new(file))?;
