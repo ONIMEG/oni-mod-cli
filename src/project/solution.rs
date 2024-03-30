@@ -11,7 +11,7 @@ use crate::utils::get_resource_path;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SolutionInfo {
-    name: String,
+    pub name: String,
     pub path: PathBuf,
     pub dir: PathBuf,
 }
@@ -32,6 +32,8 @@ impl SolutionInfo {
         }
         // 创建存放项目的文件夹
         create_dir_all(&self.dir)?;
+        let lockfile_path = &self.dir.join(".lock" );
+        fs::write(&lockfile_path, &self.dir.to_str())?;
         let resource_path = get_resource_path(choose_plib)?;
         // 将压缩包解压
         let file = File::open(&resource_path.join("build.zip"))?;
@@ -57,6 +59,7 @@ impl SolutionInfo {
         let random_guid = Uuid::new_v4().as_hyphenated().to_string().to_uppercase();
         content = content.replace("$[guid]", &random_guid);
         fs::write(&(&target_sln), content)?;
+        fs::remove_file(lockfile_path)?;
         Ok("创建解决方案成功")
     }
 }

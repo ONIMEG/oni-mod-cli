@@ -59,11 +59,17 @@ impl CSProject{
     pub fn create(&self, sln: &SolutionInfo, choose_plib: bool) -> Result<()>{
         let proj_name = &self.property_group.root_namespace;
         let target_dir = &sln.dir.join(proj_name);
+        let lockfile_path = target_dir.join(".lock");
         fs::create_dir_all(target_dir)?;
+        fs::write(&lockfile_path,format!("{:?}", &target_dir))?;
         let target_path = &target_dir.join(format!("{}.csproj",proj_name));
         create_file(&self, target_path)?;
         add_mod_cs(target_dir.join("Mod.cs"), &self, choose_plib)?;
+        let bak_sln = &sln.dir.join(format!("{}.sln.bak", &sln.name));
+        fs::copy(&sln.path, bak_sln)?;
         add_csproj_to_sln(&sln.path, &self.property_group.root_namespace)?;
+        fs::remove_file(&lockfile_path)?;
+        fs::remove_file(&bak_sln)?;
         Ok(())
     }
 }

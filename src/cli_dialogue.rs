@@ -6,7 +6,7 @@ use regex::Regex;
 use spinners::{Spinner, Spinners};
 use crate::project::csproj::CSProject;
 use crate::project::solution::SolutionInfo;
-use crate::utils::get_latest_version;
+use crate::utils::{get_curr_dir, get_latest_version};
 use anyhow::Result;
 
 pub fn create_sln_with_name(name: String){
@@ -16,12 +16,7 @@ pub fn create_sln_with_name(name: String){
         error!("解析选项失败：{:?}", choose_plib.as_ref().err())
     }
     let choose_plib = choose_plib.unwrap();
-    let curr_dir = env::current_dir();
-    if curr_dir.is_err() {
-        error!("无法解析当前目录：{:?}", curr_dir.err());
-        return;
-    }
-    let curr_dir = curr_dir.unwrap();
+    let curr_dir = get_curr_dir();
     let sln = SolutionInfo::new(name.as_str(), curr_dir);
     let confirm_create = Confirm::new().
         with_prompt(format!("将在 {:?} 目录下创建解决方案，是否确认？", &sln.dir))
@@ -54,12 +49,7 @@ pub fn create_sln_without_name(){
 }
 
 pub fn create_csproj_with_name(name: String){
-    let curr_dir = env::current_dir();
-    if curr_dir.is_err() {
-        error!("无法解析当前目录：{:?}", curr_dir.err());
-        return;
-    }
-    let curr_dir = curr_dir.unwrap();
+    let curr_dir = get_curr_dir();
     let mut target_sln_path = PathBuf::new();
     for entry in walkdir::WalkDir::new(&curr_dir)
         .max_depth(1) // 只遍历当前目录，不进入子目录

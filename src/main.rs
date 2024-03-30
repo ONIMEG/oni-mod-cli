@@ -8,7 +8,7 @@ use crate::cli_dialogue::{
 };
 use std::io::Write;
 use env_logger::fmt::style;
-use crate::utils::compare_hash;
+use crate::utils::{clean_lockfile};
 
 mod project;
 mod tests;
@@ -94,4 +94,5 @@ fn main() {
             }
          }
      }
+    clean_lockfile();
 }
