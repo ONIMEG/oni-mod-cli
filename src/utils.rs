@@ -11,7 +11,8 @@ use crate::project::git::{add_to_commit, commit_change, create_new_repo};
 
 const BUILD_HASH_PLIB:u64 = 4748454135723726910;
 const MOD_HASH_PLIB:u64 = 2910857530418022517;
-const MOD_HASH:u64 = 10249465668325030135;
+const MOD_HASH:u64 = 12719760027285663414;
+const BUILD_HASH:u64 = 1634436992676530070;
 
 pub fn get_latest_version() -> Result<u32> {
     let url = "https://forums.kleientertainment.com/game-updates/oni-alpha/";
@@ -51,14 +52,16 @@ pub fn get_resource_path(choose_plib:bool) -> Result<PathBuf>{
 }
 
 pub fn compare_hash()->Result<()>{
-    let hash_list:[u64; 3] = [BUILD_HASH_PLIB, MOD_HASH_PLIB, MOD_HASH];
-    let file_list:[&str; 3] = ["plib/build.zip","plib/Mod.cs","Mod.cs"];
+    let hash_list:[u64; 4] = [BUILD_HASH_PLIB, MOD_HASH_PLIB, MOD_HASH, BUILD_HASH];
+    let file_list:[&str; 4] = ["plib/build.zip", "plib/Mod.cs", "Mod.cs", "build.zip"];
     let root_path = get_resource_path(false)?;
-    for i in 0..3 {
-        println!("[{}/{}]检查文件完整性", i+1, hash_list.len());
+    for i in 0..4 {
+        print!("\r[{}/{}]检查 {} 文件", i+1, hash_list.len(), &file_list[i]);
         let file_path = root_path.join(file_list[i]);
         let data = fs::read(&file_path)?;
         let curr_hash = calculate_hash(&data);
+        // println!("{:?},{}",&file_list[i], &curr_hash);
+        // assert_eq!(&hash_list[i], &curr_hash);
         if curr_hash != hash_list[i] {
             error!("程序文件可能被破坏，请重新安装本程序");
             exit(1);

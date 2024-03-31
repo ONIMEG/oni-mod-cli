@@ -1,6 +1,4 @@
 ﻿using HarmonyLib;
-using PeterHan.PLib.AVC;
-using PeterHan.PLib.Core;
 
 namespace {assembly_title} {
     public sealed class Mod : KMod.UserMod2 {
