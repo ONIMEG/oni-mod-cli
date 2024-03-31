@@ -25,6 +25,7 @@ dialoguer = "0.11.0"
 chrono = "0.4.35"
 spinners = "4.1.1"
 regex="1.10.4"
+git2="0.18"
 
 
 [dependencies.uuid]

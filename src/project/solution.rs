@@ -33,7 +33,7 @@ impl SolutionInfo {
         // 创建存放项目的文件夹
         create_dir_all(&self.dir)?;
         let lockfile_path = &self.dir.join(".lock" );
-        fs::write(&lockfile_path, &self.dir.to_str())?;
+        fs::write(&lockfile_path, String::from(self.dir.to_str().unwrap()).as_bytes())?;
         let resource_path = get_resource_path(choose_plib)?;
         // 将压缩包解压
         let file = File::open(&resource_path.join("build.zip"))?;

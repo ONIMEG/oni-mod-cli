@@ -1,4 +1,3 @@
-use std::env;
 use std::path::PathBuf;
 use dialoguer::{Confirm, Input};
 use log::{error, info, warn};
@@ -6,7 +5,7 @@ use regex::Regex;
 use spinners::{Spinner, Spinners};
 use crate::project::csproj::CSProject;
 use crate::project::solution::SolutionInfo;
-use crate::utils::{get_curr_dir, get_latest_version};
+use crate::utils::{create_new_repo_util, get_curr_dir, get_latest_version};
 use anyhow::Result;
 
 pub fn create_sln_with_name(name: String){
@@ -30,10 +29,20 @@ pub fn create_sln_with_name(name: String){
         info!("取消创建解决方案");
         return;
     }
+    let confirm_git = Confirm::new().with_prompt("是否创建 git 仓库？")
+        .default(false).show_default(true).interact();
+    if confirm_git.is_err() {
+        error!("无法解析当前交互值：{:?}",confirm_git.err());
+        return;
+    }
+    let confirm_git = confirm_git.unwrap();
     let create_sln_result = sln.create(choose_plib);
     if create_sln_result.is_err() {
         error!("创建解决方案失败：{:?}", create_sln_result.err());
         return;
+    }
+    if confirm_git {
+        create_new_repo_util(sln.dir.clone());
     }
     info!("{}", create_sln_result.unwrap());
 }

@@ -7,6 +7,7 @@ use std::process::exit;
 use scraper::Selector;
 use anyhow::{anyhow, Result};
 use log::{error, info, warn};
+use crate::project::git::{add_to_commit, commit_change, create_new_repo};
 
 const BUILD_HASH_PLIB:u64 = 4748454135723726910;
 const MOD_HASH_PLIB:u64 = 2910857530418022517;
@@ -106,10 +107,35 @@ pub fn clean_lockfile(){
         }
     }
     if back_sln_path.is_file(){
-        let parent = back_sln_path.clone().parent().expect("目录处理失败");
+        let back_sln_path = back_sln_path.clone();
+        let parent = back_sln_path.parent().expect("目录处理失败");
         let sln_name = back_sln_path.file_stem();
+        if sln_name.is_none() {
+            return;
+        }
+        let sln_name = sln_name.unwrap();
         let sln_path = parent.join(sln_name);
         fs::copy(back_sln_path,sln_path).expect("恢复原解决方案失败");
     }
     warn!("程序未按预期运行，现已安全退出")
+}
+
+pub fn create_new_repo_util(repo_path: PathBuf){
+    let result = create_new_repo(repo_path.clone());
+    if result.is_err() {
+        error!("创建仓库失败 \n {}", &repo_path.display());
+        return;
+    }
+    let add_result = add_to_commit(repo_path.clone());
+    if add_result.is_err() {
+        error!("仓库创建成功但未成功暂存文件");
+        return;
+    }
+    let commit_result = commit_change(repo_path.clone(),
+                                      "init (created by oni-mod-cli)");
+    if commit_result.is_err() {
+        error!("未能进行提交");
+        return;
+    }
+    info!("初始化仓库成功")
 }
