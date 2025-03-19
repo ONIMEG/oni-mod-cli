@@ -80,7 +80,7 @@ fn init_logger(){
 }
 fn main() {
     init_logger();
-    compare_hash().expect("检查文件失败！");
+    // compare_hash().expect("检查文件失败！");
      let cli = Cli::parse();
      match &cli.command {
          Commands::Create {create_commands}=> {

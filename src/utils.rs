@@ -4,7 +4,7 @@ use std::{env, fs};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use scraper::Selector;
+use scraper::{Html, Selector};
 use anyhow::{anyhow, Result};
 use log::{error, info, warn};
 use crate::project::git::{add_to_commit, commit_change, create_new_repo};
@@ -16,21 +16,28 @@ const BUILD_HASH:u64 = 1634436992676530070;
 
 pub fn get_latest_version() -> Result<u32> {
     let url = "https://forums.kleientertainment.com/game-updates/oni-alpha/";
-    let response = reqwest::blocking::get(url);
-    if response.is_err() {
-        return Ok(526233)
-    }
-    let body = response?.text().unwrap();
-    let document = scraper::Html::parse_document(&body);
-    let selector = Selector::parse("h3").expect("选择器无法解析");
-    let version_txt = document.select(&selector).next().map(|element| element.text().collect::<String>());
-    return if let Some(text) = version_txt {
+    let response = reqwest::blocking::get(url)?;
+    let body = response.text()?;
+    let document = Html::parse_document(&body);
+    let h3_selector = Selector::parse("h3").expect("选择器无法解析");
+    let version_txt = document
+      .select(&h3_selector)
+      .find_map(|element| {
+          let text = element.text().collect::<String>();
+          if text.contains("Release") {
+              Some(text)
+          } else {
+              None
+          }
+      });
+    if let Some(text) = version_txt {
         let str = text.trim().replace("Release", "");
-        Ok(str.trim().parse::<u32>().unwrap())
+        Ok(str.trim().parse::<u32>().unwrap_or(643502))
     } else {
-        Ok(526233)
+        Ok(643502)
     }
 }
+
 
 pub fn get_resource_path(choose_plib:bool) -> Result<PathBuf>{
     let mut resource_path = PathBuf::new();
