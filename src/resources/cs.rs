@@ -1,4 +1,6 @@
-﻿using HarmonyLib;
+pub const FILE_NAME: &str = "Mod.cs";
+
+pub const CONTENT: &str = r#"using HarmonyLib;
 
 namespace {assembly_title} {
     public sealed class Mod : KMod.UserMod2 {
@@ -6,4 +8,4 @@ namespace {assembly_title} {
             base.OnLoad(harmony);
         }
     }
-}
+}"#;

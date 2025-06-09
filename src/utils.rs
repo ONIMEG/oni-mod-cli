@@ -1,87 +1,8 @@
-use std::collections::hash_map::DefaultHasher;
-use std::env::current_exe;
 use std::{env, fs};
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use scraper::{Html, Selector};
-use anyhow::{anyhow, Result};
 use log::{error, info, warn};
 use crate::project::git::{add_to_commit, commit_change, create_new_repo};
-
-const BUILD_HASH_PLIB:u64 = 4748454135723726910;
-const MOD_HASH_PLIB:u64 = 2910857530418022517;
-const MOD_HASH:u64 = 12719760027285663414;
-const BUILD_HASH:u64 = 1634436992676530070;
-
-pub fn get_latest_version() -> Result<u32> {
-    let url = "https://forums.kleientertainment.com/game-updates/oni-alpha/";
-    let response = reqwest::blocking::get(url)?;
-    let body = response.text()?;
-    let document = Html::parse_document(&body);
-    let h3_selector = Selector::parse("h3").expect("选择器无法解析");
-    let version_txt = document
-      .select(&h3_selector)
-      .find_map(|element| {
-          let text = element.text().collect::<String>();
-          if text.contains("Release") {
-              Some(text)
-          } else {
-              None
-          }
-      });
-    if let Some(text) = version_txt {
-        let str = text.trim().replace("Release", "");
-        Ok(str.trim().parse::<u32>().unwrap_or(643502))
-    } else {
-        Ok(643502)
-    }
-}
-
-
-pub fn get_resource_path(choose_plib:bool) -> Result<PathBuf>{
-    let mut resource_path = PathBuf::new();
-    if cfg!(debug_assertions) {
-        resource_path = resource_path
-            .join("C:\\Users\\26216\\code\\rust\\oni-mod-cli\\resource");
-    } else {
-        let exe_path = current_exe()?;
-        let parent = exe_path.parent();
-        if parent.is_none(){
-            return Err(anyhow!("解析程序路径失败"));
-        }
-        resource_path = resource_path.join(parent.unwrap()).join("resource");
-    }
-    if choose_plib {
-        resource_path = resource_path.join("plib");
-    }
-    Ok(resource_path)
-}
-
-pub fn compare_hash()->Result<()>{
-    let hash_list:[u64; 4] = [BUILD_HASH_PLIB, MOD_HASH_PLIB, MOD_HASH, BUILD_HASH];
-    let file_list:[&str; 4] = ["plib/build.zip", "plib/Mod.cs", "Mod.cs", "build.zip"];
-    let root_path = get_resource_path(false)?;
-    for i in 0..4 {
-        print!("\r[{}/{}]检查 {} 文件", i+1, hash_list.len(), &file_list[i]);
-        let file_path = root_path.join(file_list[i]);
-        let data = fs::read(&file_path)?;
-        let curr_hash = calculate_hash(&data);
-        // println!("{:?},{}",&file_list[i], &curr_hash);
-        // assert_eq!(&hash_list[i], &curr_hash);
-        if curr_hash != hash_list[i] {
-            error!("程序文件可能被破坏，请重新安装本程序");
-            exit(1);
-        }
-    }
-    Ok(())
-}
-
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
 
 pub fn get_curr_dir() -> PathBuf{
     let curr_dir = env::current_dir();

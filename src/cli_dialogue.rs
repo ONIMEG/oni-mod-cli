@@ -2,19 +2,12 @@ use std::path::PathBuf;
 use dialoguer::{Confirm, Input};
 use log::{error, info, warn};
 use regex::Regex;
-use spinners::{Spinner, Spinners};
 use crate::project::csproj::CSProject;
 use crate::project::solution::SolutionInfo;
-use crate::utils::{create_new_repo_util, get_curr_dir, get_latest_version};
+use crate::utils::{create_new_repo_util, get_curr_dir};
 use anyhow::Result;
 
 pub fn create_sln_with_name(name: String){
-    let choose_plib = Confirm::new().with_prompt("是否使用 PLib？")
-        .default(true).show_default(true).interact();
-    if choose_plib.is_err() {
-        error!("解析选项失败：{:?}", choose_plib.as_ref().err())
-    }
-    let choose_plib = choose_plib.unwrap();
     let curr_dir = get_curr_dir();
     let sln = SolutionInfo::new(name.as_str(), curr_dir);
     let confirm_create = Confirm::new().
@@ -36,7 +29,7 @@ pub fn create_sln_with_name(name: String){
         return;
     }
     let confirm_git = confirm_git.unwrap();
-    let create_sln_result = sln.create(choose_plib);
+    let create_sln_result = sln.create();
     if create_sln_result.is_err() {
         error!("创建解决方案失败：{:?}", create_sln_result.err());
         return;
@@ -113,18 +106,9 @@ pub fn create_csproj_with_name(name: String){
         return;
     }
     let desc = desc.unwrap();
-    let mut sp = Spinner::new(Spinners::Earth, String::from("获取当前游戏最新版本号"));
-    let latest_version = get_latest_version();
-    sp.stop();
-    if latest_version.is_err() {
-        error!("获取游戏版本号失败：{:?}", latest_version);
-        return;
-    }
-    let latest_version = latest_version.unwrap();
-    println!("当前获取到的版本号(可能不是最新版本号)：{}", latest_version);
+    
     let sln = SolutionInfo::new(target_sln_name, curr_dir.clone());
     let mut csproj = CSProject::new(name.as_str(), root_namespace.as_str());
-    csproj.property_group.last_working_build = latest_version;
     csproj.property_group.description = desc.to_string();
     let csproj_create = csproj.create(&sln, choose_plib);
     if csproj_create.is_err() {

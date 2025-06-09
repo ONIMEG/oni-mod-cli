@@ -1,0 +1,107 @@
+pub const FILE_NAME : &str = "Directory.Build.targets";
+
+pub const CONTENT : &str = r#"<?xml version="1.0" encoding="utf-8"?>
+<Project>
+    <Target Name="SetPlatform" BeforeTargets="CoreCompile">
+        <PropertyGroup>
+            <PlatformTarget>AnyCPU</PlatformTarget>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="ClearGameFolderCopyLocal" AfterTargets="ResolveAssemblyReferences">
+        <ItemGroup>
+            <ReferenceCopyLocalPaths Remove="$(GameFolderActive)\*"/>
+        </ItemGroup>
+    </Target>
+
+    <Target Name="WriteModInfoFile" BeforeTargets="PreBuildEvent" Condition=" '$(DistributeMod)' == 'true' ">
+    <PropertyGroup>
+        <ModInfoFile>$(IntermediateOutputPath)\mod_info.yaml</ModInfoFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <ModInfoFileContentLines Include="minimumSupportedBuild: $(LastWorkingBuild)"/>
+        <ModInfoFileContentLines Include="version: $(FileVersion)"/>
+        <ModInfoFileContentLines Include="APIVersion: $(APIVersion)"/>
+    </ItemGroup>
+    <WriteLinesToFile
+            File="$(ModInfoFile)"
+            Overwrite="true"
+            Lines="@(ModInfoFileContentLines)"/>
+    </Target>
+
+
+    <Target Name="WriteModDescriptionFile" BeforeTargets="PreBuildEvent" Condition=" '$(DistributeMod)' == 'true' ">
+    <PropertyGroup>
+        <ModDescriptionFile>$(IntermediateOutputPath)\mod.yaml</ModDescriptionFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <ModDescriptionFileContentLines Include="title: &quot;$(AssemblyTitle)&quot;"/>
+        <ModDescriptionFileContentLines Include="description: &quot;$(Description)&quot;"/>
+        <ModDescriptionFileContentLines Include="staticID: CalYu.$(AssemblyName)"/>
+    </ItemGroup>
+    <WriteLinesToFile
+            File="$(ModDescriptionFile)"
+            Overwrite="true"
+            Lines="@(ModDescriptionFileContentLines)"/>
+    </Target>
+
+    <Target Name="ILRepack" AfterTargets="Build">
+        <PropertyGroup>
+            <Internalize>true</Internalize>
+        </PropertyGroup>
+        <ItemGroup Condition=" '$(UsesPLib)' != 'false' ">
+            <InputAssemblies Include="$(TargetPath)" />
+            <InputAssemblies Include="$(TargetDir)PLib*.dll" />
+        </ItemGroup>
+        <ItemGroup Condition=" '$(UsesPLib)' == 'false' ">
+            <InputAssemblies Include="$(TargetPath)" />
+        </ItemGroup>
+
+        <ILRepack
+                TargetPlatformVersion="v4"
+                TargetKind="SameAsPrimaryAssembly"
+                OutputFile="$(TargetPath)"
+                InputAssemblies="@(InputAssemblies)"
+                XmlDocumentation="true"
+                Internalize="$(Internalize)"
+                Wildcards="true"
+                LibraryPath="$(GameFolder)" />
+    </Target>
+
+    <Target Name="CopyArtifactsToInstallFolder" AfterTargets="ILRepack" Condition=" '$(DistributeMod)' == 'true' ">
+        <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+            <RootInstallFolder>..\Release\$(ProjectName)</RootInstallFolder>
+        </PropertyGroup>
+        <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+            <RootInstallFolder>$(ModFolder)\$(ProjectName)</RootInstallFolder>
+        </PropertyGroup>
+        <PropertyGroup>
+            <InstallFolder>$(RootInstallFolder)</InstallFolder>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <AnimFiles Include="$(ProjectDir)\anim\**\*.*"/>
+            <TranslationFiles Include="$(ProjectDir)\translations\*.po"/>
+            <TranslationTempleteFiles Include="$(ProjectDir)\translations\*.pot"/>
+            <WorldGenFiles Include="$(ProjectDir)\worldgen\**\*.*"/>
+            <WorldGenTemplates Include="$(ProjectDir)\templates\**\*.*"/>
+            <ElementFiles Include="$(ProjectDir)\elements\**\*.*"/>
+            <CodexFiles Include="$(ProjectDir)\codex\**\*.*"/>
+            <YamlFiles Include="$(ProjectDir)\*.yaml"/>
+            <AssestFiles Include="$(ProjectDir)\assets\*"/>
+        </ItemGroup>
+
+        <Copy SourceFiles="@(AnimFiles)" DestinationFiles="@(AnimFiles->'$(InstallFolder)\anim\%(RecursiveDir)%(Filename)%(Extension)')"/>
+        <Copy SourceFiles="@(TranslationFiles)" DestinationFolder="$(InstallFolder)\translations"/>
+        <Copy SourceFiles="@(AssestFiles)" DestinationFolder="$(InstallFolder)\assets"/>
+        <Copy SourceFiles="@(TranslationTempleteFiles)" DestinationFolder="$(InstallFolder)\translations"/>
+        <Copy SourceFiles="@(ElementFiles)" DestinationFiles="@(ElementFiles->'$(InstallFolder)\elements\%(RecursiveDir)%(Filename)%(Extension)')"/>
+        <Copy SourceFiles="@(CodexFiles)" DestinationFiles="@(CodexFiles->'$(InstallFolder)\codex\%(RecursiveDir)%(Filename)%(Extension)')"/>
+        <Copy SourceFiles="@(WorldGenFiles)" DestinationFiles="@(WorldGenFiles->'$(InstallFolder)\worldgen\%(RecursiveDir)%(Filename)%(Extension)')"/>
+        <Copy SourceFiles="@(WorldGenTemplates)" DestinationFiles="@(WorldGenTemplates->'$(InstallFolder)\templates\%(RecursiveDir)%(Filename)%(Extension)')"/>
+        <Copy SourceFiles="@(YamlFiles)" DestinationFolder="$(InstallFolder)"/>
+        <Copy SourceFiles="$(ModInfoFile)" DestinationFolder="$(InstallFolder)"/>
+        <Copy SourceFiles="$(ModDescriptionFile)" DestinationFolder="$(RootInstallFolder)"/>
+        <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(InstallFolder)\$(TargetFileName)"/>
+    </Target>
+</Project>"#;

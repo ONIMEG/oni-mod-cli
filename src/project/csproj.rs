@@ -1,21 +1,21 @@
-use std::{
-    fs::{self, File, OpenOptions},
-    io::BufReader,
-    iter,
-    path::PathBuf
-};
-use std::io::{Read, Write};
+use crate::project::solution::SolutionInfo;
+use crate::resources;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use std::io::Write;
+use std::{
+    fs::{self, OpenOptions},
+    io::BufReader,
+    iter,
+    path::PathBuf,
+};
 use uuid::Uuid;
 use xml::reader::{EventReader, XmlEvent};
-use crate::project::solution::SolutionInfo;
-use crate::utils::get_resource_path;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CSProject {
     #[serde(rename = "PropertyGroup")]
-    pub property_group: PropertyGroup
+    pub property_group: PropertyGroup,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -31,7 +31,7 @@ pub struct PropertyGroup {
     #[serde(rename = "AssemblyVersion")]
     pub assembly_version: String,
     #[serde(rename = "LastWorkingBuild")]
-    pub last_working_build: u32,
+    pub last_working_build: String,
     #[serde(rename = "Platforms")]
     pub platforms: String,
 }
@@ -41,30 +41,30 @@ const PROJECT_ITEM: &str = r#"Project("{$[a]}") = "$[b]", "$[b]\$[b].csproj", "{
 EndProject
 "#;
 
-impl CSProject{
+impl CSProject {
     pub fn new(csproj_name: &str, root_name: &str) -> Self {
-        CSProject{
-            property_group: PropertyGroup{
+        CSProject {
+            property_group: PropertyGroup {
                 assembly_title: String::from(csproj_name),
                 file_version: String::from("1.0.0"),
                 root_namespace: String::from(root_name),
                 description: String::from("缺氧模组"),
                 assembly_version: String::from("1.0.0"),
-                last_working_build: 526233,
+                last_working_build: String::from("$(LatestBuild)"),
                 platforms: String::from("Vanilla;Mergedown"),
-            }
+            },
         }
     }
     /// 创建本地 csproj
-    pub fn create(&self, sln: &SolutionInfo, choose_plib: bool) -> Result<()>{
+    pub fn create(&self, sln: &SolutionInfo, choose_plib: bool) -> Result<()> {
         let proj_name = &self.property_group.root_namespace;
         let target_dir = &sln.dir.join(proj_name);
         let lockfile_path = target_dir.join(".lock");
         fs::create_dir_all(target_dir)?;
-        fs::write(&lockfile_path,format!("{:?}", &target_dir))?;
-        let target_path = &target_dir.join(format!("{}.csproj",proj_name));
-        create_file(&self, target_path)?;
-        add_mod_cs(target_dir.join("Mod.cs"), &self, choose_plib)?;
+        fs::write(&lockfile_path, format!("{:?}", &target_dir))?;
+        let target_path = &target_dir.join(format!("{}.csproj", proj_name));
+        create_file(&self, target_path, choose_plib)?;
+        add_mod_cs(target_dir.join(resources::cs::FILE_NAME), &self)?;
         let bak_sln = &sln.dir.join(format!("{}.sln.bak", &sln.name));
         fs::copy(&sln.path, bak_sln)?;
         add_csproj_to_sln(&sln.path, &self.property_group.root_namespace)?;
@@ -74,14 +74,16 @@ impl CSProject{
     }
 }
 /// 创建 csproj 文件
-fn create_file(csproj: &CSProject, target_path: &PathBuf) -> Result<()>{
+fn create_file(csproj: &CSProject, target_path: &PathBuf, choose_plib: bool) -> Result<()> {
     let mut new_csproj_xml = serde_xml_rs::to_string(&csproj)?;
+    let mut footer = "</Project>";
+    if !choose_plib {
+        footer = "  <ItemGroup>\n        <PackageReference Remove=\"PLib\" />\n  </ItemGroup>\n</Project>";
+    }
     new_csproj_xml = format_xml(new_csproj_xml)?;
-    new_csproj_xml = new_csproj_xml.replace(
-        "<CSProject>",
-        "<Project Sdk=\"Microsoft.NET.Sdk\">").replace(
-        "</CSProject>",
-        "</Project>");
+    new_csproj_xml = new_csproj_xml
+        .replace("<CSProject>", "<Project Sdk=\"Microsoft.NET.Sdk\">")
+        .replace("</CSProject>", footer);
     fs::write(target_path, new_csproj_xml)?;
     Ok(())
 }
@@ -94,9 +96,7 @@ fn format_xml(xml_string: String) -> Result<String> {
     for event in parser {
         match event {
             Ok(XmlEvent::StartElement { name, .. }) => {
-                formatted_xml += &iter::repeat("  ")
-                    .take(depth)
-                    .collect::<String>();
+                formatted_xml += &iter::repeat("  ").take(depth).collect::<String>();
                 if depth == 2 {
                     formatted_xml += &format!("<{}>", name);
                 } else {
@@ -107,9 +107,7 @@ fn format_xml(xml_string: String) -> Result<String> {
             Ok(XmlEvent::EndElement { name }) => {
                 depth -= 1;
                 if depth < 2 {
-                    formatted_xml += &iter::repeat("  ")
-                        .take(depth)
-                        .collect::<String>();
+                    formatted_xml += &iter::repeat("  ").take(depth).collect::<String>();
                 }
                 formatted_xml += &format!("</{}>\n", name);
             }
@@ -117,19 +115,16 @@ fn format_xml(xml_string: String) -> Result<String> {
                 formatted_xml += &format!("{}", text.trim());
             }
             Ok(_) => {}
-            Err(e) => return Err(anyhow!("格式化 xml 失败：{}",e.to_string())),
+            Err(e) => return Err(anyhow!("格式化 xml 失败：{}", e.to_string())),
         }
     }
     Ok(formatted_xml)
 }
 /// 创建 Mod.cs
-fn add_mod_cs(target_path: PathBuf, new_info: &CSProject, choose_plib: bool) -> Result<()>{
-    let resource_path = get_resource_path(choose_plib)?;
-    let mut file_obj = File::open(resource_path.join("Mod.cs")).expect("找不到 Mod.cs");
-    let mut code = String::new();
-    file_obj.read_to_string(&mut code).expect("读取 Mod.cs 失败");
-    code = code.replace("{assembly_title}", &new_info.property_group.root_namespace);
-    fs::write(target_path,code)?;
+fn add_mod_cs(target_path: PathBuf, new_info: &CSProject) -> Result<()> {
+    let code =
+        resources::cs::CONTENT.replace("{assembly_title}", &new_info.property_group.root_namespace);
+    fs::write(target_path, code)?;
     Ok(())
 }
 // 在 solution 添加 project 字段
@@ -137,7 +132,10 @@ fn add_csproj_to_sln(target_sln: &PathBuf, csproj_name: &String) -> Result<()> {
     let project_item = PROJECT_ITEM
         .replace("$[a]", CS_GUID)
         .replace("$[b]", csproj_name)
-        .replace("$[c]", &*Uuid::new_v4().as_hyphenated().to_string().to_uppercase());
+        .replace(
+            "$[c]",
+            &*Uuid::new_v4().as_hyphenated().to_string().to_uppercase(),
+        );
     let mut sln_file = OpenOptions::new()
         .write(true)
         .append(true)
